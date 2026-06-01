@@ -4,8 +4,6 @@ pipeline {
     environment {
         EC2_HOST = "34.206.52.251"
         EC2_USER = "ubuntu"
-
-        APP_DIR = "/home/ubuntu/fullstack-project/fullstack-project"
     }
 
     stages {
@@ -22,7 +20,6 @@ pipeline {
                 sh '''
                 cd backend
                 python3 -m venv venv
-                ./venv/bin/pip install --upgrade pip
                 ./venv/bin/pip install -r requirements.txt
                 '''
             }
@@ -38,49 +35,44 @@ pipeline {
             }
         }
 
-        stage('Deploy to EC2 (No PEM)') {
+        stage('Deploy to EC2 (NO SSH AGENT)') {
             steps {
-                sshagent(['ec2-key']) {
-                    sh """
-                    echo "Deploying to EC2..."
+                sh '''
+                echo "Deploying using direct SSH key..."
 
-                    ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST '
-                        mkdir -p $APP_DIR
-                    '
+                ssh -o StrictHostKeyChecking=no ubuntu@34.206.52.251 << 'EOF'
 
-                    rsync -avz -e "ssh -o StrictHostKeyChecking=no" backend/ \
-                    $EC2_USER@$EC2_HOST:$APP_DIR/backend
+                mkdir -p /home/ubuntu/fullstack-project/fullstack-project
 
-                    rsync -avz -e "ssh -o StrictHostKeyChecking=no" frontend/dist/ \
-                    $EC2_USER@$EC2_HOST:$APP_DIR/frontend/dist
-                    """
-                }
+                EOF
+
+                rsync -avz -e "ssh -o StrictHostKeyChecking=no" backend/ \
+                ubuntu@34.206.52.251:/home/ubuntu/fullstack-project/fullstack-project/backend
+
+                rsync -avz -e "ssh -o StrictHostKeyChecking=no" frontend/dist/ \
+                ubuntu@34.206.52.251:/home/ubuntu/fullstack-project/fullstack-project/frontend/dist
+                '''
             }
         }
 
         stage('Restart Services') {
             steps {
-                sshagent(['ec2-key']) {
-                    sh """
-                    ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << 'EOF'
+                sh '''
+                ssh -o StrictHostKeyChecking=no ubuntu@34.206.52.251 << 'EOF'
 
-                    echo "Restarting backend..."
-                    sudo systemctl daemon-reload
-                    sudo systemctl restart fastapi || true
+                sudo systemctl daemon-reload
+                sudo systemctl restart fastapi || true
+                sudo systemctl restart nginx
 
-                    echo "Restarting nginx..."
-                    sudo systemctl restart nginx
-
-                    EOF
-                    """
-                }
+                EOF
+                '''
             }
         }
     }
 
     post {
         success {
-            echo "🚀 Deployment Successful (Industry Pipeline)"
+            echo "🚀 Deployment Successful"
         }
         failure {
             echo "❌ Deployment Failed"
