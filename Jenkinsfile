@@ -8,6 +8,9 @@ pipeline {
         PROJECT_DIR = "/home/ubuntu/fullstack-project"
         BACKEND_DIR = "/home/ubuntu/fullstack-project/backend"
         FRONTEND_DIR = "/home/ubuntu/fullstack-project/frontend"
+
+        // 🔥 IMPORTANT: FIXED ABSOLUTE PATH (CHANGE IF NEEDED)
+        SSH_KEY = "/home/ubuntu/.jenkins/workspace/FSD/UbuntuKeypair.pem"
     }
 
     stages {
@@ -40,21 +43,24 @@ pipeline {
             }
         }
 
-        stage('Deploy to EC2 (NO SSH AGENT, NO PLUGIN)') {
+        stage('Deploy to EC2') {
             steps {
                 sh '''
-                echo "Deploying using direct SSH key..."
+                echo "🚀 Deploying to EC2..."
 
-                ssh -o StrictHostKeyChecking=no -i UbuntuKeypair.pem ubuntu@34.206.52.251 << 'EOF'
+                # Create directories on EC2
+                ssh -i $SSH_KEY -o StrictHostKeyChecking=no ubuntu@34.206.52.251 "
+                    mkdir -p /home/ubuntu/fullstack-project/backend &&
+                    mkdir -p /home/ubuntu/fullstack-project/frontend/dist
+                "
 
-                mkdir -p /home/ubuntu/fullstack-project/backend
-                mkdir -p /home/ubuntu/fullstack-project/frontend
+                # Sync backend
+                rsync -avz -e "ssh -i $SSH_KEY -o StrictHostKeyChecking=no" \
+                backend/ ubuntu@34.206.52.251:/home/ubuntu/fullstack-project/backend/
 
-                EOF
-
-                rsync -avz -e "ssh -o StrictHostKeyChecking=no -i UbuntuKeypair.pem" backend/ ubuntu@34.206.52.251:/home/ubuntu/fullstack-project/backend/
-
-                rsync -avz -e "ssh -o StrictHostKeyChecking=no -i UbuntuKeypair.pem" frontend/dist/ ubuntu@34.206.52.251:/home/ubuntu/fullstack-project/frontend/dist/
+                # Sync frontend build
+                rsync -avz -e "ssh -i $SSH_KEY -o StrictHostKeyChecking=no" \
+                frontend/dist/ ubuntu@34.206.52.251:/home/ubuntu/fullstack-project/frontend/dist/
                 '''
             }
         }
@@ -62,13 +68,11 @@ pipeline {
         stage('Restart Services') {
             steps {
                 sh '''
-                ssh -o StrictHostKeyChecking=no -i UbuntuKeypair.pem ubuntu@34.206.52.251 << 'EOF'
-
-                sudo systemctl daemon-reload
-                sudo systemctl restart fastapi || true
-                sudo systemctl restart nginx
-
-                EOF
+                ssh -i $SSH_KEY -o StrictHostKeyChecking=no ubuntu@34.206.52.251 "
+                    sudo systemctl daemon-reload || true
+                    sudo systemctl restart fastapi || true
+                    sudo systemctl restart nginx || true
+                "
                 '''
             }
         }
@@ -76,7 +80,7 @@ pipeline {
 
     post {
         success {
-            echo "🚀 Deployment Successfull"
+            echo "🚀 Deployment Successful"
         }
         failure {
             echo "❌ Deployment Failed"
