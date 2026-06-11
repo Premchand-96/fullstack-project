@@ -1,76 +1,113 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import "./App.css";
 
 function App() {
+  const [user, setUser] = useState({
+    id: "",
+    name: "",
+    email: "",
+    role: "",
+  });
 
-  const [users, setUsers] = useState<any[]>([]);
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setUser({
+      ...user,
+      [e.target.name]: e.target.value,
+    });
+  };
 
-  useEffect(() => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-    fetch("/api/users")
-      .then((res) => res.json())
-      .then((data) => setUsers(data));
+    try {
+      const response = await fetch("http://13.63.104.158:8000/api/users", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: Number(user.id),
+          name: user.name,
+          email: user.email,
+          role: user.role,
+        }),
+      });
 
-  }, []);
+      const data = await response.json();
+
+      if (response.ok) {
+        alert("User inserted successfully");
+        console.log(data);
+
+        setUser({
+          id: "",
+          name: "",
+          email: "",
+          role: "",
+        });
+      } else {
+        alert("Failed to insert user");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Server connection failed");
+    }
+  };
 
   return (
-
     <div className="main-container">
-
       <div className="overlay"></div>
 
-      <nav className="navbar">
-        <div className="logo">Stackly</div>
-
-        <ul>
-          <li>Home</li>
-          <li>Services</li>
-          <li>Cloud</li>
-          <li>Contact</li>
-        </ul>
-      </nav>
-
-      <section className="hero-section">
-
+      <div className="hero-section">
         <div className="hero-content">
+          <h1>User Management</h1>
 
-          <h1>AWS FastAPI Deployment</h1>
+          <form
+            onSubmit={handleSubmit}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "15px",
+              width: "400px",
+              margin: "auto",
+            }}
+          >
+            <input
+              type="number"
+              name="id"
+              placeholder="User ID"
+              value={user.id}
+              onChange={handleChange}
+            />
 
-          <p>
-            Full stack deployment using React, FastAPI,
-            MySQL, Nginx and AWS EC2.
-          </p>
+            <input
+              type="text"
+              name="name"
+              placeholder="Name"
+              value={user.name}
+              onChange={handleChange}
+            />
 
-          <button>Deploy Now</button>
+            <input
+              type="email"
+              name="email"
+              placeholder="Email"
+              value={user.email}
+              onChange={handleChange}
+            />
 
+            <input
+              type="text"
+              name="role"
+              placeholder="Role"
+              value={user.role}
+              onChange={handleChange}
+            />
+
+            <button type="submit">Save User</button>
+          </form>
         </div>
-
-      </section>
-
-      <section className="api-section">
-
-        <h2>Employee Database</h2>
-
-        <div className="users-grid">
-
-          {users.map((user) => (
-
-            <div className="api-card" key={user.id}>
-
-              <h3>{user.name}</h3>
-
-              <p>{user.email}</p>
-
-              <p>{user.role}</p>
-
-            </div>
-
-          ))}
-
-        </div>
-
-      </section>
-
+      </div>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from sqlalchemy import text
 from database import engine
 
@@ -12,6 +13,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+class User(BaseModel):
+    id: int
+    name: str
+    email: str
+    role: str
 
 @app.get("/")
 def home():
@@ -39,3 +46,26 @@ def get_users():
     connection.close()
 
     return users
+
+@app.post("/api/users")
+def create_user(user: User):
+
+    connection = engine.connect()
+
+    connection.execute(
+        text("""
+            INSERT INTO users(id, name, email, role)
+            VALUES(:id, :name, :email, :role)
+        """),
+        {
+            "id": user.id,
+            "name": user.name,
+            "email": user.email,
+            "role": user.role
+        }
+    )
+
+    connection.commit()
+    connection.close()
+
+    return {"message": "User inserted successfully"}
