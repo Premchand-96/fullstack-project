@@ -44,11 +44,35 @@ pipeline {
             }
         }
 
-        stage('Restart Services') {
+        stage('Restart Backend') {
+            steps {
+                sh '''
+                sudo pkill -f uvicorn || true
+                sleep 5
+
+                sudo systemctl daemon-reload
+                sudo systemctl restart fastapi
+
+                sleep 5
+                sudo systemctl status fastapi --no-pager
+                '''
+            }
+        }
+
+        stage('Restart Nginx') {
             steps {
                 sh '''
                 sudo systemctl restart nginx
-                sudo systemctl restart fastapi
+                sudo systemctl status nginx --no-pager
+                '''
+            }
+        }
+
+        stage('Health Check') {
+            steps {
+                sh '''
+                curl -I http://localhost || true
+                curl http://localhost:8000/ || true
                 '''
             }
         }
