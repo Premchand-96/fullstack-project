@@ -36,7 +36,7 @@ stages {
         }
     }
 
-    stage('Deploy Frontend') {
+    stage('Deploy Frontend to Nginx') {
         steps {
             sh '''
             sudo rm -rf /var/www/html/*
@@ -53,12 +53,22 @@ stages {
             '''
         }
     }
+
+    stage('Verify Services') {
+        steps {
+            sh '''
+            sudo systemctl is-active nginx
+            sudo systemctl is-active fastapi
+            '''
+        }
+    }
 }
 
 post {
     success {
         echo 'Deployment Successful'
     }
+
     failure {
         echo 'Deployment Failed'
     }
