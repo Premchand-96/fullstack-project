@@ -2,11 +2,6 @@ pipeline {
 agent any
 
 ```
-environment {
-    APP_DIR = "/home/ubuntu/fullstack-project"
-    NGINX_DIR = "/var/www/html"
-}
-
 stages {
 
     stage('Checkout Code') {
@@ -55,9 +50,6 @@ stages {
             sh '''
             sudo systemctl restart nginx
             sudo systemctl restart fastapi
-
-            sudo systemctl status nginx --no-pager
-            sudo systemctl status fastapi --no-pager
             '''
         }
     }
@@ -67,7 +59,6 @@ post {
     success {
         echo 'Deployment Successful'
     }
-
     failure {
         echo 'Deployment Failed'
     }
