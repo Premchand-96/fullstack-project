@@ -7,9 +7,7 @@ from database import engine
 app = FastAPI()
 
 origins = [
-    "http://13.63.104.158",
-    "http://localhost",
-    "http://localhost:5173",
+    "http://13.63.104.158"
 ]
 
 app.add_middleware(
