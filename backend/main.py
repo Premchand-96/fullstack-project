@@ -1,13 +1,15 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 from database import engine
 
 app = FastAPI()
 
 origins = [
-    "http://13.63.104.158"
+    "http://13.63.104.158",
+    "http://13.63.104.158:80"
 ]
 
 app.add_middleware(
@@ -33,43 +35,66 @@ def get_users():
 
     connection = engine.connect()
 
-    query = text("SELECT * FROM users")
+    try:
+        result = connection.execute(text("SELECT * FROM users"))
 
-    result = connection.execute(query)
+        users = []
 
-    users = []
+        for row in result:
+            users.append({
+                "id": row[0],
+                "name": row[1],
+                "email": row[2],
+                "role": row[3]
+            })
 
-    for row in result:
-        users.append({
-            "id": row[0],
-            "name": row[1],
-            "email": row[2],
-            "role": row[3]
-        })
+        return users
 
-    connection.close()
+    finally:
+        connection.close()
 
-    return users
 
 @app.post("/api/users")
 def create_user(user: User):
 
     connection = engine.connect()
 
-    connection.execute(
-        text("""
-            INSERT INTO users(id, name, email, role)
-            VALUES(:id, :name, :email, :role)
-        """),
-        {
-            "id": user.id,
-            "name": user.name,
-            "email": user.email,
-            "role": user.role
+    try:
+        connection.execute(
+            text("""
+                INSERT INTO users(id, name, email, role)
+                VALUES(:id, :name, :email, :role)
+            """),
+            {
+                "id": user.id,
+                "name": user.name,
+                "email": user.email,
+                "role": user.role
+            }
+        )
+
+        connection.commit()
+
+        return {
+            "success": True,
+            "message": "User inserted successfully"
         }
-    )
 
-    connection.commit()
-    connection.close()
+    except IntegrityError:
+        connection.rollback()
 
-    return {"message": "User inserted successfully"}
+        raise HTTPException(
+            status_code=400,
+            detail="User ID or Email already exists"
+        )
+
+    except Exception as e:
+        connection.rollback()
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+
+    finally:
+        connection.close()
