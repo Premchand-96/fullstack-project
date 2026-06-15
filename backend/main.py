@@ -6,12 +6,15 @@ from database import engine
 
 app = FastAPI()
 
+origins = [
+    "http://13.63.104.158",
+    "http://localhost",
+    "http://localhost:5173",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://13.63.104.158",
-        "http://13.63.104.158:80",
-        "http://13.63.104.158:3000",
-        "http://13.63.104.158:5173",],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
