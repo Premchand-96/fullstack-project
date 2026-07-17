@@ -4,31 +4,53 @@ phases:
   install:
     runtime-versions:
       python: 3.12
-      nodejs: 22
+      nodejs: 20
+
     commands:
-      - echo "Installing backend dependencies..."
+      - echo "===== Installing Backend Dependencies ====="
       - cd backend
       - python -m pip install --upgrade pip
       - pip install -r requirements.txt
       - cd ..
 
-      - echo "Installing frontend dependencies..."
+      - echo "===== Installing Frontend Dependencies ====="
       - cd frontend
-      - npm install
+      - |
+        if [ -f package-lock.json ]; then
+          echo "Using npm ci..."
+          npm ci
+        else
+          echo "Using npm install..."
+          npm install
+        fi
+      - npm install --save-dev typescript
+      - node -v
+      - npm -v
+      - npx tsc --version
       - cd ..
 
   build:
     commands:
-      - echo "Building React application..."
+      - echo "===== Building React Frontend ====="
       - cd frontend
       - npm run build
       - cd ..
 
-      - echo "Checking FastAPI..."
+      - echo "===== Validating FastAPI Backend ====="
       - cd backend
       - python -m compileall .
       - cd ..
 
+  post_build:
+    commands:
+      - echo "===== Build Completed Successfully ====="
+
 artifacts:
   files:
     - '**/*'
+  discard-paths: no
+
+cache:
+  paths:
+    - 'frontend/node_modules/**/*'
+    - '/root/.cache/pip/**/*'
