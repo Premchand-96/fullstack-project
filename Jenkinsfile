@@ -65,8 +65,7 @@ pipeline {
  
         stage('Copy Package to EC2') {
             steps {
-                sshagent(credentials: ['ubuntu-ssh-agent-key
-']) {
+                sshagent(credentials: ['ubuntu-ssh-agent-key']) {
  
                     sh """
                     scp -o StrictHostKeyChecking=no app.zip ${DEPLOY_USER}@${DEPLOY_SERVER}:/tmp/
@@ -78,8 +77,7 @@ pipeline {
         stage('Deploy Application') {
             steps {
  
-                sshagent(credentials: ['ubuntu-ssh-agent-key
-']) {
+                sshagent(credentials: ['ubuntu-ssh-agent-key']) {
  
                     sh """
 ssh -o StrictHostKeyChecking=no ${DEPLOY_USER}@${DEPLOY_SERVER} << 'EOF'
